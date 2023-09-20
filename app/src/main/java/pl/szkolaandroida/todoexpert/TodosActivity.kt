@@ -3,6 +3,14 @@ package pl.szkolaandroida.todoexpert
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import pl.szkolaandroida.todoexpert.databinding.ActivityTodosBinding
+import pl.szkolaandroida.todoexpert.databinding.TodoItemBinding
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -10,9 +18,15 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class TodosActivity : AppCompatActivity() {
+
+    private val adapter = TodosAdapter()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_todos)
+        val binding = ActivityTodosBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        binding.todosRv.layoutManager = GridLayoutManager(this, 2)
+        binding.todosRv.adapter = adapter
 
 
         val retrofit = Retrofit.Builder()
@@ -30,6 +44,7 @@ class TodosActivity : AppCompatActivity() {
             ) {
                 if (response.isSuccessful) {
                     response.body()?.let {
+                        adapter.setTodos(it.results)
                         for (todo in it.results) {
                             Log.d("TAG", "Todo:$todo")
                         }
@@ -46,4 +61,37 @@ class TodosActivity : AppCompatActivity() {
         })
 
     }
+}
+
+class TodosAdapter : RecyclerView.Adapter<TodoViewHolder>() {
+
+    private val todos = mutableListOf<Todo>()
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TodoViewHolder {
+        val layoutInflater = LayoutInflater.from(parent.context)
+        return TodoViewHolder(TodoItemBinding.inflate(layoutInflater, parent, false))
+    }
+
+    override fun getItemCount(): Int {
+        return todos.size
+    }
+
+    override fun onBindViewHolder(holder: TodoViewHolder, position: Int) {
+        val todo = todos[position]
+        holder.bind(todo)
+    }
+
+    fun setTodos(results: List<Todo>) {
+        todos.clear()
+        todos.addAll(results)
+        this.notifyDataSetChanged()
+    }
+
+}
+
+class TodoViewHolder(val binding: TodoItemBinding) : RecyclerView.ViewHolder(binding.root) {
+    fun bind(todo: Todo) {
+        binding.done.isChecked = todo.done
+        binding.content.text = todo.content
+    }
+
 }
